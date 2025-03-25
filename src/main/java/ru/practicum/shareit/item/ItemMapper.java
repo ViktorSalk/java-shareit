@@ -10,8 +10,11 @@ import ru.practicum.shareit.item.model.Item;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface ItemMapper {
+
     @Mapping(target = "request", expression = "java(item.getRequest() != null ? item.getRequest() : null)")
     ItemDto toItemDto(Item item);
+
     Item toItem(ItemDto itemDto);
+
     Item updateItemFields(@MappingTarget Item targetItem, ItemDto sourceItemDto);
 }
