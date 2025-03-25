@@ -9,9 +9,7 @@ import ru.practicum.shareit.user.dto.UserDto;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * TODO Sprint add-item-requests.
- */
+
 @Getter
 @Setter
 @Builder(toBuilder = true)
