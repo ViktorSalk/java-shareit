@@ -13,22 +13,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static ru.practicum.shareit.user.UserMapper.toUserDto;
-
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final Set<String> emailSet = new HashSet<>();
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
-        userRepository.findAll().forEach(user -> emailSet.add(user.getEmail().toLowerCase()));
+        this.userMapper = userMapper;
     }
 
     @Override
     public List<UserDto> getAll() {
         return userRepository.findAll().stream()
-                .map(UserMapper::toUserDto)
+                .map(userMapper::toUserDto)
                 .collect(Collectors.toList());
     }
 
@@ -37,7 +36,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ShareItException.NotFoundException("Не найден пользователь с id: " + id));
 
-        return toUserDto(user);
+        return userMapper.toUserDto(user);
     }
 
     @Override
@@ -45,7 +44,7 @@ public class UserServiceImpl implements UserService {
         checkEmailUniqueness(user);
         User createdUser = userRepository.create(user);
         emailSet.add(createdUser.getEmail().toLowerCase());
-        return toUserDto(createdUser);
+        return userMapper.toUserDto(createdUser);
     }
 
     @Override
@@ -58,14 +57,10 @@ public class UserServiceImpl implements UserService {
             checkEmailUniqueness(user);
             emailSet.remove(updatedUser.getEmail().toLowerCase());
             emailSet.add(user.getEmail().toLowerCase());
-            updatedUser.setEmail(user.getEmail());
         }
 
-        if (user.getName() != null) {
-            updatedUser.setName(user.getName());
-        }
-
-        return toUserDto(userRepository.update(updatedUser));
+        User updated = userMapper.updateUserFields(updatedUser, userMapper.toUserDto(user));
+        return userMapper.toUserDto(userRepository.update(updated));
     }
 
     @Override

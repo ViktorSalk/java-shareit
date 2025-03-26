@@ -28,6 +28,9 @@ class ItemControllerTest {
     @Autowired
     private UserController userController;
 
+    @Autowired
+    private UserMapper userMapper;
+
     private ItemDto itemDto;
     private UserDto userDto;
     private Long userId;
@@ -38,7 +41,7 @@ class ItemControllerTest {
                 .name("Test Owner")
                 .email("owner@email.com")
                 .build();
-        UserDto createdUser = userController.create(UserMapper.toUser(userDto));
+        UserDto createdUser = userController.create(userMapper.toUser(userDto));
         userId = createdUser.getId();
 
         itemDto = ItemDto.builder()
@@ -183,7 +186,7 @@ class ItemControllerTest {
                     .name("Another User")
                     .email("another@email.com")
                     .build();
-            UserDto anotherUser = userController.create(UserMapper.toUser(anotherUserDto));
+            UserDto anotherUser = userController.create(userMapper.toUser(anotherUserDto));
 
             ItemDto updateRequest = ItemDto.builder()
                     .name("Unauthorized Update")

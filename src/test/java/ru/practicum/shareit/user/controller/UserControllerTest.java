@@ -24,6 +24,9 @@ class UserControllerTest {
     @Autowired
     private UserController userController;
 
+    @Autowired
+    private UserMapper userMapper;
+
     private UserDto userDto;
     private User user;
 
@@ -34,7 +37,7 @@ class UserControllerTest {
                 .email("test@email.com")
                 .build();
 
-        user = UserMapper.toUser(userDto);
+        user = userMapper.toUser(userDto);
     }
 
     @Nested // Тесты на создание пользователей
@@ -91,7 +94,7 @@ class UserControllerTest {
                     .name("Second User")
                     .email("second@email.com")
                     .build();
-            userController.create(UserMapper.toUser(secondUser));
+            userController.create(userMapper.toUser(secondUser));
 
             List<UserDto> users = userController.getAll();
 
