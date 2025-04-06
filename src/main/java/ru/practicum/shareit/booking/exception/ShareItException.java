@@ -28,4 +28,18 @@ public class ShareItException extends RuntimeException {
             super(message, HttpStatus.CONFLICT);
         }
     }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public static class BadRequestException extends ShareItException {
+        public BadRequestException(String message) {
+            super(message, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public static class ForbiddenException extends ShareItException {
+        public ForbiddenException(String message) {
+            super(message, HttpStatus.FORBIDDEN);
+        }
+    }
 }

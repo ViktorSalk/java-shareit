@@ -22,6 +22,11 @@ public abstract class AbstractRepository<T, K> {
         entities.remove(id);
     }
 
+    public void reset() {
+        entities.clear();
+        nextId = 1L;
+    }
+
     protected abstract void setEntityId(T entity, Long id);
 
     protected abstract K getEntityId(T entity);
