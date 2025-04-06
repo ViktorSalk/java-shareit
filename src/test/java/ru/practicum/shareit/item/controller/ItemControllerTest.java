@@ -8,6 +8,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import ru.practicum.shareit.ShareItApp;
+import ru.practicum.shareit.TestConfig;
 import ru.practicum.shareit.booking.exception.ShareItException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -27,6 +31,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
+@ActiveProfiles("test")
+@ContextConfiguration(classes = {ShareItApp.class, TestConfig.class})
 @ExtendWith(MockitoExtension.class)
 class ItemControllerTest {
     @Mock
