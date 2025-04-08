@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.TestConfig;
 import ru.practicum.shareit.booking.controller.BookingController;
@@ -73,6 +74,7 @@ class ItemBookingInfoTest {
     }
 
     @Test // Тесты на получение бронирований для вещи владельца
+    @Transactional
     @DisplayName("Item should show booking info for owner")
     void itemShouldShowBookingInfoForOwner() {
         LocalDateTime nearFutureStart = LocalDateTime.now().plusHours(1);
@@ -82,8 +84,8 @@ class ItemBookingInfoTest {
                 .start(nearFutureStart)
                 .end(nearFutureEnd)
                 .build();
-        BookingDto createdNearFutureBooking = bookingController.create(bookerDto.getId(), nearFutureBooking);
-        bookingController.approve(ownerDto.getId(), createdNearFutureBooking.getId(), true);
+        BookingDto createdNearFutureBooking = bookingController.createBooking(nearFutureBooking, bookerDto.getId()).getBody();
+        bookingController.approve(createdNearFutureBooking.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
         LocalDateTime farFutureStart = LocalDateTime.now().plusDays(1);
         LocalDateTime farFutureEnd = LocalDateTime.now().plusDays(2);
@@ -92,8 +94,8 @@ class ItemBookingInfoTest {
                 .start(farFutureStart)
                 .end(farFutureEnd)
                 .build();
-        BookingDto createdFarFutureBooking = bookingController.create(bookerDto.getId(), farFutureBooking);
-        bookingController.approve(ownerDto.getId(), createdFarFutureBooking.getId(), true);
+        BookingDto createdFarFutureBooking = bookingController.createBooking(farFutureBooking, bookerDto.getId()).getBody();
+        bookingController.approve(createdFarFutureBooking.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
         ItemDto itemWithBookings = itemController.getById(itemDto.getId(), ownerDto.getId());
 
@@ -113,6 +115,7 @@ class ItemBookingInfoTest {
     }
 
     @Test // Тесты на получение бронирований для вещей кроме вещей владельца
+    @Transactional
     @DisplayName("Item should not show booking info for non-owner")
     void itemShouldNotShowBookingInfoForNonOwner() {
         LocalDateTime start = LocalDateTime.now().plusDays(1);
@@ -122,7 +125,7 @@ class ItemBookingInfoTest {
                 .start(start)
                 .end(end)
                 .build();
-        bookingController.create(bookerDto.getId(), bookingDto);
+        bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
         ItemDto itemForNonOwner = itemController.getById(itemDto.getId(), bookerDto.getId());
 
@@ -131,6 +134,7 @@ class ItemBookingInfoTest {
     }
 
     @Test // Тесты на получение бронирований для всех вещей владельца
+    @Transactional
     @DisplayName("All owner's items should show booking info")
     void allOwnerItemsShouldShowBookingInfo() {
         ItemDto secondItem = ItemDto.builder()
@@ -147,8 +151,8 @@ class ItemBookingInfoTest {
                 .start(start1)
                 .end(end1)
                 .build();
-        BookingDto createdBooking1 = bookingController.create(bookerDto.getId(), booking1);
-        bookingController.approve(ownerDto.getId(), createdBooking1.getId(), true);
+        BookingDto createdBooking1 = bookingController.createBooking(booking1, bookerDto.getId()).getBody();
+        bookingController.approve(createdBooking1.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
         LocalDateTime start2 = LocalDateTime.now().plusDays(3);
         LocalDateTime end2 = LocalDateTime.now().plusDays(4);
@@ -157,8 +161,8 @@ class ItemBookingInfoTest {
                 .start(start2)
                 .end(end2)
                 .build();
-        BookingDto createdBooking2 = bookingController.create(bookerDto.getId(), booking2);
-        bookingController.approve(ownerDto.getId(), createdBooking2.getId(), true);
+        BookingDto createdBooking2 = bookingController.createBooking(booking2, bookerDto.getId()).getBody();
+        bookingController.approve(createdBooking2.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
         List<ItemDto> ownerItems = itemController.getAll(ownerDto.getId());
 

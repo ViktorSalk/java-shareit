@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.TestConfig;
 import ru.practicum.shareit.booking.BookingStatus;
@@ -86,9 +87,10 @@ class BookingControllerTest {
     @DisplayName("Creating bookings")
     class CreateBookingTests {
         @Test
+        @Transactional
         @DisplayName("Successful booking creation")
         void createBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
             assertNotNull(createdBooking);
             assertNotNull(createdBooking.getId());
@@ -100,13 +102,15 @@ class BookingControllerTest {
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when owner tries to book their own item")
         void ownerBookingOwnItemTest() {
             assertThrows(ShareItException.NotFoundException.class,
-                    () -> bookingController.create(ownerDto.getId(), bookingDto));
+                    () -> bookingController.createBooking(bookingDto, ownerDto.getId()));
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when booking unavailable item")
         void bookingUnavailableItemTest() {
             ItemDto updatedItem = ItemDto.builder()
@@ -115,10 +119,11 @@ class BookingControllerTest {
             itemController.update(updatedItem, itemDto.getId(), ownerDto.getId());
 
             assertThrows(ShareItException.BadRequestException.class,
-                    () -> bookingController.create(bookerDto.getId(), bookingDto));
+                    () -> bookingController.createBooking(bookingDto, bookerDto.getId()));
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when booking with invalid dates")
         void bookingWithInvalidDatesTest() {
             BookingDto invalidBooking = BookingDto.builder()
@@ -128,7 +133,7 @@ class BookingControllerTest {
                     .build();
 
             assertThrows(ShareItException.BadRequestException.class,
-                    () -> bookingController.create(bookerDto.getId(), invalidBooking));
+                    () -> bookingController.createBooking(invalidBooking, bookerDto.getId()));
         }
     }
 
@@ -136,27 +141,30 @@ class BookingControllerTest {
     @DisplayName("Approving bookings")
     class ApproveBookingTests {
         @Test
+        @Transactional
         @DisplayName("Successful booking approval")
         void approveBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
-            BookingDto approvedBooking = bookingController.approve(ownerDto.getId(), createdBooking.getId(), true);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
+            BookingDto approvedBooking = bookingController.approve(createdBooking.getId(), ownerDto.getId(), true).getBody();
 
             assertEquals(BookingStatus.APPROVED, approvedBooking.getStatus());
         }
 
         @Test
+        @Transactional
         @DisplayName("Successful booking rejection")
         void rejectBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
-            BookingDto rejectedBooking = bookingController.approve(ownerDto.getId(), createdBooking.getId(), false);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
+            BookingDto rejectedBooking = bookingController.approve(createdBooking.getId(), ownerDto.getId(), false).getBody();
 
             assertEquals(BookingStatus.REJECTED, rejectedBooking.getStatus());
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when non-owner tries to approve booking")
         void nonOwnerApprovingBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
             String randomEmail = "random" + System.currentTimeMillis() + "@email.com";
             UserDto randomUser = UserDto.builder()
@@ -167,17 +175,18 @@ class BookingControllerTest {
 
             UserDto finalRandomUser = randomUser;
             assertThrows(ShareItException.ForbiddenException.class,
-                    () -> bookingController.approve(finalRandomUser.getId(), createdBooking.getId(), true));
+                    () -> bookingController.approve(createdBooking.getId(), finalRandomUser.getId(), true));
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when approving already processed booking")
         void approvingProcessedBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
-            bookingController.approve(ownerDto.getId(), createdBooking.getId(), true);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
+            bookingController.approve(createdBooking.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
             assertThrows(ShareItException.BadRequestException.class,
-                    () -> bookingController.approve(ownerDto.getId(), createdBooking.getId(), true));
+                    () -> bookingController.approve(createdBooking.getId(), ownerDto.getId(), true));
         }
     }
 
@@ -185,10 +194,11 @@ class BookingControllerTest {
     @DisplayName("Getting bookings")
     class GetBookingTests {
         @Test
+        @Transactional
         @DisplayName("Getting booking by ID")
         void getBookingByIdTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
-            BookingDto retrievedBooking = bookingController.getById(bookerDto.getId(), createdBooking.getId());
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
+            BookingDto retrievedBooking = bookingController.getById(createdBooking.getId(), bookerDto.getId()).getBody();
 
             assertNotNull(retrievedBooking);
             assertEquals(createdBooking.getId(), retrievedBooking.getId());
@@ -197,9 +207,10 @@ class BookingControllerTest {
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when unauthorized user tries to get booking")
         void unauthorizedGetBookingTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
             String randomEmail = "random" + System.currentTimeMillis() + "@email.com";
             UserDto randomUser = UserDto.builder()
@@ -210,15 +221,16 @@ class BookingControllerTest {
 
             UserDto finalRandomUser = randomUser;
             assertThrows(ShareItException.NotFoundException.class,
-                    () -> bookingController.getById(finalRandomUser.getId(), createdBooking.getId()));
+                    () -> bookingController.getById(createdBooking.getId(), finalRandomUser.getId()));
         }
 
         @Test
+        @Transactional
         @DisplayName("Getting all bookings by booker")
         void getAllBookingsByBookerTest() {
-            bookingController.create(bookerDto.getId(), bookingDto);
+            bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
-            List<BookingDto> bookings = bookingController.getAllByBooker(bookerDto.getId(), "ALL");
+            List<BookingDto> bookings = bookingController.getAllByBooker(bookerDto.getId(), "ALL").getBody();
 
             assertEquals(1, bookings.size());
             assertEquals(itemDto.getId(), bookings.get(0).getItem().getId());
@@ -226,11 +238,12 @@ class BookingControllerTest {
         }
 
         @Test
+        @Transactional
         @DisplayName("Getting all bookings by owner")
         void getAllBookingsByOwnerTest() {
-            bookingController.create(bookerDto.getId(), bookingDto);
+            bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
 
-            List<BookingDto> bookings = bookingController.getAllByOwner(ownerDto.getId(), "ALL");
+            List<BookingDto> bookings = bookingController.getAllByOwner(ownerDto.getId(), "ALL").getBody();
 
             assertEquals(1, bookings.size());
             assertEquals(itemDto.getId(), bookings.get(0).getItem().getId());
@@ -238,19 +251,21 @@ class BookingControllerTest {
         }
 
         @Test
+        @Transactional
         @DisplayName("Getting bookings with different states")
         void getBookingsWithDifferentStatesTest() {
-            BookingDto createdBooking = bookingController.create(bookerDto.getId(), bookingDto);
-            bookingController.approve(ownerDto.getId(), createdBooking.getId(), true);
+            BookingDto createdBooking = bookingController.createBooking(bookingDto, bookerDto.getId()).getBody();
+            bookingController.approve(createdBooking.getId(), ownerDto.getId(), true).getBody(); // Добавлен .getBody()
 
-            List<BookingDto> waitingBookings = bookingController.getAllByBooker(bookerDto.getId(), "WAITING");
+            List<BookingDto> waitingBookings = bookingController.getAllByBooker(bookerDto.getId(), "WAITING").getBody();
             assertEquals(0, waitingBookings.size());
 
-            List<BookingDto> futureBookings = bookingController.getAllByBooker(bookerDto.getId(), "FUTURE");
+            List<BookingDto> futureBookings = bookingController.getAllByBooker(bookerDto.getId(), "FUTURE").getBody();
             assertEquals(1, futureBookings.size());
         }
 
         @Test
+        @Transactional
         @DisplayName("Error when using invalid state")
         void invalidStateTest() {
             assertThrows(ShareItException.BadRequestException.class,

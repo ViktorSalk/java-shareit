@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item.controller;
 
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,7 @@ class CommentControllerTest {
     }
 
     @Test // Тест на успешное добавление комментария с бронированием
+    @Transactional
     @DisplayName("Error when adding comment with future booking")
     void errorWhenAddingCommentWithFutureBooking() {
         LocalDateTime start = LocalDateTime.now().plusDays(1);
@@ -100,8 +102,8 @@ class CommentControllerTest {
                 .end(end)
                 .build();
 
-        BookingDto createdBooking = bookingController.create(bookerDto.getId(), futureBooking);
-        bookingController.approve(ownerDto.getId(), createdBooking.getId(), true);
+        BookingDto createdBooking = bookingController.createBooking(futureBooking, bookerDto.getId()).getBody();
+        bookingController.approve(createdBooking.getId(), ownerDto.getId(), true).getBody();
 
         CommentDto commentDto = CommentDto.builder()
                 .text("I haven't used this item yet")

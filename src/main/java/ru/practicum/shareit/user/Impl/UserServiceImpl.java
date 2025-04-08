@@ -1,9 +1,6 @@
 package ru.practicum.shareit.user.Impl;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +29,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable(value = "users", key = "#id")
     public UserDto getById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ShareItException.NotFoundException("Не найден пользователь с id: " + id));
@@ -51,7 +47,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CachePut(value = "users", key = "#id")
     @Transactional
     public UserDto update(User user, Long id) {
         User existingUser = userRepository.findById(id)
@@ -67,7 +62,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "users", key = "#id")
     @Transactional
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
