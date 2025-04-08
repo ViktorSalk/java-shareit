@@ -31,5 +31,6 @@ public abstract class BookingStateHandler {
     }
 
     protected abstract boolean canHandle(BookingState state);
+
     protected abstract List<Booking> getBookings(Long userId, LocalDateTime now);
 }
