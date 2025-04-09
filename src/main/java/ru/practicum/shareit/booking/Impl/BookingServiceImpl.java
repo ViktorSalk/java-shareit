@@ -8,20 +8,9 @@ import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.exception.ShareItException;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.booking.service.handler.AllBookingsHandler;
+import ru.practicum.shareit.booking.service.BookerStateProcessor;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.booking.service.handler.BookingStateHandler;
-import ru.practicum.shareit.booking.service.handler.CurrentBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.FutureBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerAllBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerCurrentBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerFutureBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerPastBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerRejectedBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.OwnerWaitingBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.PastBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.RejectedBookingsHandler;
-import ru.practicum.shareit.booking.service.handler.WaitingBookingsHandler;
+import ru.practicum.shareit.booking.service.handler.owner.OwnerStateProcessor;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
@@ -37,47 +26,21 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
     private final BookingMapper bookingMapper;
-    private final BookingStateHandler bookerStateHandler;
-    private final BookingStateHandler ownerStateHandler;
+    private final BookerStateProcessor bookerStateProcessor;
+    private final OwnerStateProcessor ownerStateProcessor;
 
-    public BookingServiceImpl(BookingRepository bookingRepository, UserRepository userRepository,
-                              ItemRepository itemRepository, BookingMapper bookingMapper) {
+    public BookingServiceImpl(BookingRepository bookingRepository,
+                              UserRepository userRepository,
+                              ItemRepository itemRepository,
+                              BookingMapper bookingMapper,
+                              BookerStateProcessor bookerStateProcessor,
+                              OwnerStateProcessor ownerStateProcessor) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
         this.bookingMapper = bookingMapper;
-
-        // Цепочки обязанностей для букера
-        BookingStateHandler allHandler = new AllBookingsHandler(bookingRepository);
-        BookingStateHandler currentHandler = new CurrentBookingsHandler(bookingRepository);
-        BookingStateHandler pastHandler = new PastBookingsHandler(bookingRepository);
-        BookingStateHandler futureHandler = new FutureBookingsHandler(bookingRepository);
-        BookingStateHandler waitingHandler = new WaitingBookingsHandler(bookingRepository);
-        BookingStateHandler rejectedHandler = new RejectedBookingsHandler(bookingRepository);
-
-        allHandler.setNext(currentHandler)
-                .setNext(pastHandler)
-                .setNext(futureHandler)
-                .setNext(waitingHandler)
-                .setNext(rejectedHandler);
-
-        this.bookerStateHandler = allHandler;
-
-        // Цепочки обязанностей для владельца
-        BookingStateHandler ownerAllHandler = new OwnerAllBookingsHandler(bookingRepository);
-        BookingStateHandler ownerCurrentHandler = new OwnerCurrentBookingsHandler(bookingRepository);
-        BookingStateHandler ownerPastHandler = new OwnerPastBookingsHandler(bookingRepository);
-        BookingStateHandler ownerFutureHandler = new OwnerFutureBookingsHandler(bookingRepository);
-        BookingStateHandler ownerWaitingHandler = new OwnerWaitingBookingsHandler(bookingRepository);
-        BookingStateHandler ownerRejectedHandler = new OwnerRejectedBookingsHandler(bookingRepository);
-
-        ownerAllHandler.setNext(ownerCurrentHandler)
-                .setNext(ownerPastHandler)
-                .setNext(ownerFutureHandler)
-                .setNext(ownerWaitingHandler)
-                .setNext(ownerRejectedHandler);
-
-        this.ownerStateHandler = ownerAllHandler;
+        this.bookerStateProcessor = bookerStateProcessor;
+        this.ownerStateProcessor = ownerStateProcessor;
     }
 
     @Override
@@ -160,7 +123,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        List<Booking> bookings = bookerStateHandler.handle(state, userId, now);
+        List<Booking> bookings = bookerStateProcessor.process(state, userId, now);
 
         return bookings.stream()
                 .map(bookingMapper::toBookingDto)
@@ -180,7 +143,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        List<Booking> bookings = ownerStateHandler.handle(state, userId, now);
+        List<Booking> bookings = ownerStateProcessor.process(state, userId, now);
 
         return bookings.stream()
                 .map(bookingMapper::toBookingDto)

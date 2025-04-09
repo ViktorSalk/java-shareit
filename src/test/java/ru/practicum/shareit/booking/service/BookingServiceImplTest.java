@@ -13,12 +13,14 @@ import org.springframework.test.context.ContextConfiguration;
 import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.TestConfig;
 import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingState;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.Impl.BookingServiceImpl;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.exception.ShareItException;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.booking.service.handler.owner.OwnerStateProcessor;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
@@ -54,6 +56,10 @@ class BookingServiceImplTest {
     private ItemRepository itemRepository;
     @Mock
     private BookingMapper bookingMapper;
+    @Mock
+    private BookerStateProcessor bookerStateProcessor;
+    @Mock
+    private OwnerStateProcessor ownerStateProcessor;
     @InjectMocks
     private BookingServiceImpl bookingService;
 
@@ -322,7 +328,8 @@ class BookingServiceImplTest {
         @DisplayName("Should get all bookings by booker")
         void getAllBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerId(anyLong())).thenReturn(Collections.singletonList(booking));
+            when(bookerStateProcessor.process(eq(BookingState.ALL), eq(booker.getId()), any(LocalDateTime.class)))
+                    .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
             List<BookingDto> result = bookingService.getAllByBooker(booker.getId(), "ALL");
@@ -330,14 +337,14 @@ class BookingServiceImplTest {
             assertNotNull(result);
             assertEquals(1, result.size());
             assertEquals(bookingDto.getId(), result.get(0).getId());
-            verify(bookingRepository).findAllByBookerId(booker.getId());
+            verify(bookerStateProcessor).process(eq(BookingState.ALL), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get current bookings by booker")
         void getCurrentBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerIdAndStartBeforeAndEndAfter(anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)))
+            when(bookerStateProcessor.process(eq(BookingState.CURRENT), eq(booker.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -345,14 +352,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByBookerIdAndStartBeforeAndEndAfter(eq(booker.getId()), any(LocalDateTime.class), any(LocalDateTime.class));
+            verify(bookerStateProcessor).process(eq(BookingState.CURRENT), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get past bookings by booker")
         void getPastBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerIdAndEndBefore(anyLong(), any(LocalDateTime.class)))
+            when(bookerStateProcessor.process(eq(BookingState.PAST), eq(booker.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -360,14 +367,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByBookerIdAndEndBefore(eq(booker.getId()), any(LocalDateTime.class));
+            verify(bookerStateProcessor).process(eq(BookingState.PAST), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get future bookings by booker")
         void getFutureBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerIdAndStartAfter(anyLong(), any(LocalDateTime.class)))
+            when(bookerStateProcessor.process(eq(BookingState.FUTURE), eq(booker.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -375,14 +382,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByBookerIdAndStartAfter(eq(booker.getId()), any(LocalDateTime.class));
+            verify(bookerStateProcessor).process(eq(BookingState.FUTURE), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get waiting bookings by booker")
         void getWaitingBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerIdAndStatus(anyLong(), eq(BookingStatus.WAITING)))
+            when(bookerStateProcessor.process(eq(BookingState.WAITING), eq(booker.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -390,14 +397,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByBookerIdAndStatus(booker.getId(), BookingStatus.WAITING);
+            verify(bookerStateProcessor).process(eq(BookingState.WAITING), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get rejected bookings by booker")
         void getRejectedBookingsByBooker() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-            when(bookingRepository.findAllByBookerIdAndStatus(anyLong(), eq(BookingStatus.REJECTED)))
+            when(bookerStateProcessor.process(eq(BookingState.REJECTED), eq(booker.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -405,7 +412,7 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByBookerIdAndStatus(booker.getId(), BookingStatus.REJECTED);
+            verify(bookerStateProcessor).process(eq(BookingState.REJECTED), eq(booker.getId()), any(LocalDateTime.class));
         }
 
         @Test
@@ -425,7 +432,8 @@ class BookingServiceImplTest {
         @DisplayName("Should get all bookings by owner")
         void getAllBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerId(anyLong())).thenReturn(Collections.singletonList(booking));
+            when(ownerStateProcessor.process(eq(BookingState.ALL), eq(owner.getId()), any(LocalDateTime.class)))
+                    .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
             List<BookingDto> result = bookingService.getAllByOwner(owner.getId(), "ALL");
@@ -433,14 +441,14 @@ class BookingServiceImplTest {
             assertNotNull(result);
             assertEquals(1, result.size());
             assertEquals(bookingDto.getId(), result.get(0).getId());
-            verify(bookingRepository).findAllByItemOwnerId(owner.getId());
+            verify(ownerStateProcessor).process(eq(BookingState.ALL), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get current bookings by owner")
         void getCurrentBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerIdAndStartBeforeAndEndAfter(anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)))
+            when(ownerStateProcessor.process(eq(BookingState.CURRENT), eq(owner.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -448,14 +456,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByItemOwnerIdAndStartBeforeAndEndAfter(eq(owner.getId()), any(LocalDateTime.class), any(LocalDateTime.class));
+            verify(ownerStateProcessor).process(eq(BookingState.CURRENT), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get past bookings by owner")
         void getPastBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerIdAndEndBefore(anyLong(), any(LocalDateTime.class)))
+            when(ownerStateProcessor.process(eq(BookingState.PAST), eq(owner.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -463,14 +471,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByItemOwnerIdAndEndBefore(eq(owner.getId()), any(LocalDateTime.class));
+            verify(ownerStateProcessor).process(eq(BookingState.PAST), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get future bookings by owner")
         void getFutureBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerIdAndStartAfter(anyLong(), any(LocalDateTime.class)))
+            when(ownerStateProcessor.process(eq(BookingState.FUTURE), eq(owner.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -478,14 +486,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByItemOwnerIdAndStartAfter(eq(owner.getId()), any(LocalDateTime.class));
+            verify(ownerStateProcessor).process(eq(BookingState.FUTURE), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get waiting bookings by owner")
         void getWaitingBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerIdAndStatus(anyLong(), eq(BookingStatus.WAITING)))
+            when(ownerStateProcessor.process(eq(BookingState.WAITING), eq(owner.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -493,14 +501,14 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByItemOwnerIdAndStatus(owner.getId(), BookingStatus.WAITING);
+            verify(ownerStateProcessor).process(eq(BookingState.WAITING), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("Should get rejected bookings by owner")
         void getRejectedBookingsByOwner() {
             when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-            when(bookingRepository.findAllByItemOwnerIdAndStatus(anyLong(), eq(BookingStatus.REJECTED)))
+            when(ownerStateProcessor.process(eq(BookingState.REJECTED), eq(owner.getId()), any(LocalDateTime.class)))
                     .thenReturn(Collections.singletonList(booking));
             when(bookingMapper.toBookingDto(any(Booking.class))).thenReturn(bookingDto);
 
@@ -508,7 +516,7 @@ class BookingServiceImplTest {
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(bookingRepository).findAllByItemOwnerIdAndStatus(owner.getId(), BookingStatus.REJECTED);
+            verify(ownerStateProcessor).process(eq(BookingState.REJECTED), eq(owner.getId()), any(LocalDateTime.class));
         }
 
         @Test
