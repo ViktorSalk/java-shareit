@@ -1,6 +1,9 @@
 package ru.practicum.shareit.user.Impl;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.exception.ShareItException;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
@@ -8,21 +11,15 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final Set<String> emailSet = new HashSet<>();
-
-    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper) {
-        this.userRepository = userRepository;
-        this.userMapper = userMapper;
-    }
 
     @Override
     public List<UserDto> getAll() {
@@ -35,50 +32,41 @@ public class UserServiceImpl implements UserService {
     public UserDto getById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ShareItException.NotFoundException("Не найден пользователь с id: " + id));
-
         return userMapper.toUserDto(user);
     }
 
     @Override
+    @Transactional
     public UserDto create(User user) {
-        checkEmailUniqueness(user);
-        User createdUser = userRepository.create(user);
-        emailSet.add(createdUser.getEmail().toLowerCase());
-        return userMapper.toUserDto(createdUser);
+        try {
+            User createdUser = userRepository.save(user);
+            return userMapper.toUserDto(createdUser);
+        } catch (DataIntegrityViolationException e) {
+            throw new ShareItException.ConflictException("Пользователь с таким email уже зарегистрирован");
+        }
     }
 
     @Override
+    @Transactional
     public UserDto update(User user, Long id) {
-        User updatedUser = userRepository.findById(id)
+        User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ShareItException.NotFoundException("Невозможно обновить данные пользователя. " +
                         "Не найден пользователь с id: " + id));
 
-        if (user.getEmail() != null && !user.getEmail().equals(updatedUser.getEmail())) {
-            checkEmailUniqueness(user);
-            emailSet.remove(updatedUser.getEmail().toLowerCase());
-            emailSet.add(user.getEmail().toLowerCase());
+        try {
+            User updated = userMapper.updateUserFields(existingUser, userMapper.toUserDto(user));
+            return userMapper.toUserDto(userRepository.save(updated));
+        } catch (DataIntegrityViolationException e) {
+            throw new ShareItException.ConflictException("Пользователь с таким email уже зарегистрирован");
         }
-
-        User updated = userMapper.updateUserFields(updatedUser, userMapper.toUserDto(user));
-        return userMapper.toUserDto(userRepository.update(updated));
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ShareItException.NotFoundException("Не найден пользователь с id: " + id));
-        emailSet.remove(user.getEmail().toLowerCase());
-        userRepository.delete(id);
-    }
-
-    private void checkEmailUniqueness(User user) {
-        if (user.getEmail() == null) {
-            return;
+        if (!userRepository.existsById(id)) {
+            throw new ShareItException.NotFoundException("Не найден пользователь с id: " + id);
         }
-
-        String email = user.getEmail().toLowerCase();
-        if (emailSet.contains(email)) {
-            throw new ShareItException.ConflictException("Пользователь с таким email уже зарегистрирован");
-        }
+        userRepository.deleteById(id);
     }
 }

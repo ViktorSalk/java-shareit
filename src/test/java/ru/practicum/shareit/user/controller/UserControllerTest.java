@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import ru.practicum.shareit.ShareItApp;
+import ru.practicum.shareit.TestConfig;
 import ru.practicum.shareit.booking.exception.ShareItException;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
@@ -17,7 +21,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ActiveProfiles("test")
+@ContextConfiguration(classes = {ShareItApp.class, TestConfig.class})
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class UserControllerTest {
@@ -32,11 +39,12 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
+        String uniqueEmail = "test" + System.currentTimeMillis() + "@email.com";
+
         userDto = UserDto.builder()
                 .name("Test User")
-                .email("test@email.com")
+                .email(uniqueEmail)
                 .build();
-
         user = userMapper.toUser(userDto);
     }
 
@@ -49,7 +57,7 @@ class UserControllerTest {
             UserDto createdUser = userController.create(user);
 
             assertNotNull(createdUser);
-            assertEquals(1L, createdUser.getId());
+            assertNotNull(createdUser.getId()); // Проверяем, что ID не null, а не конкретное значение
             assertEquals(userDto.getName(), createdUser.getName());
             assertEquals(userDto.getEmail(), createdUser.getEmail());
         }
@@ -61,7 +69,7 @@ class UserControllerTest {
 
             User duplicateUser = User.builder()
                     .name("Another User")
-                    .email("test@email.com") // Тот же email
+                    .email(user.getEmail()) // Тот же email
                     .build();
 
             assertThrows(ShareItException.ConflictException.class,
@@ -87,27 +95,35 @@ class UserControllerTest {
         @Test
         @DisplayName("Getting all users")
         void getAllUsersTest() {
-            userController.create(user);
+            UserDto createdUser = userController.create(user);
 
-            // Создаем второго пользователя
+            String secondEmail = "second" + System.currentTimeMillis() + "@email.com";
             UserDto secondUser = UserDto.builder()
                     .name("Second User")
-                    .email("second@email.com")
+                    .email(secondEmail)
                     .build();
-            userController.create(userMapper.toUser(secondUser));
+            UserDto createdSecondUser = userController.create(userMapper.toUser(secondUser));
 
             List<UserDto> users = userController.getAll();
 
-            assertEquals(2, users.size());
-            assertEquals("Test User", users.get(0).getName());
-            assertEquals("Second User", users.get(1).getName());
+            assertTrue(users.size() >= 2);
+            assertTrue(users.stream().anyMatch(u -> u.getId().equals(createdUser.getId())));
+            assertTrue(users.stream().anyMatch(u -> u.getId().equals(createdSecondUser.getId())));
         }
 
         @Test
         @DisplayName("Error when receiving a non-existent user")
         void getNonExistentUserTest() {
+            List<UserDto> allUsers = userController.getAll();
+            long maxId = allUsers.stream()
+                    .mapToLong(UserDto::getId)
+                    .max()
+                    .orElse(0);
+
+            long nonExistentId = maxId + 1000;
+
             assertThrows(ShareItException.NotFoundException.class,
-                    () -> userController.getById(999L));
+                    () -> userController.getById(nonExistentId));
         }
     }
 
@@ -119,19 +135,20 @@ class UserControllerTest {
         void updateUserTest() {
             UserDto createdUser = userController.create(user);
 
+            String updatedEmail = "updated" + System.currentTimeMillis() + "@email.com";
             User updatedUser = User.builder()
                     .name("Updated Name")
-                    .email("updated@email.com")
+                    .email(updatedEmail)
                     .build();
 
             UserDto result = userController.update(updatedUser, createdUser.getId());
 
             assertEquals("Updated Name", result.getName());
-            assertEquals("updated@email.com", result.getEmail());
+            assertEquals(updatedEmail, result.getEmail());
 
             UserDto retrievedUser = userController.getById(createdUser.getId());
             assertEquals("Updated Name", retrievedUser.getName());
-            assertEquals("updated@email.com", retrievedUser.getEmail());
+            assertEquals(updatedEmail, retrievedUser.getEmail());
         }
 
         @Test // Тест на частичное обновление пользователя
@@ -147,12 +164,13 @@ class UserControllerTest {
             assertEquals("New Name", result.getName());
             assertEquals(userDto.getEmail(), result.getEmail());
 
+            String newEmail = "new" + System.currentTimeMillis() + "@email.com";
             User emailUpdate = User.builder()
-                    .email("new@email.com")
+                    .email(newEmail)
                     .build();
             result = userController.update(emailUpdate, createdUser.getId());
             assertEquals("New Name", result.getName());
-            assertEquals("new@email.com", result.getEmail());
+            assertEquals(newEmail, result.getEmail());
         }
     }
 
@@ -163,11 +181,12 @@ class UserControllerTest {
         @DisplayName("Successful user deletion")
         void deleteUserTest() {
             UserDto createdUser = userController.create(user);
-            assertEquals(1, userController.getAll().size());
+            int initialSize = userController.getAll().size();
 
             userController.delete(createdUser.getId());
 
-            assertEquals(0, userController.getAll().size());
+            int newSize = userController.getAll().size();
+            assertEquals(initialSize - 1, newSize);
 
             assertThrows(ShareItException.NotFoundException.class,
                     () -> userController.getById(createdUser.getId()));
