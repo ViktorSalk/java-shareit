@@ -38,9 +38,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     @Transactional
     public ItemRequestDto create(ItemRequestDto itemRequestDto, Long userId) {
-        if (itemRequestDto.getDescription() == null || itemRequestDto.getDescription().isBlank()) {
-            throw new ShareItException.BadRequestException("Описание запроса не может быть пустым");
-        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ShareItException.NotFoundException("Пользователь не найден"));
