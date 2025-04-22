@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import ru.practicum.shareit.request.client.ItemRequestClient;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
+import ru.practicum.shareit.util.Constants;
 
 @Controller
 @RequestMapping(path = "/requests")
@@ -27,12 +28,11 @@ import ru.practicum.shareit.request.dto.ItemRequestDto;
 @Validated
 public class ItemRequestController {
     private final ItemRequestClient itemRequestClient;
-    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)  // Важно: тесты ожидают статус 201 CREATED
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Object> create(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId,
             @Valid @RequestBody ItemRequestDto itemRequestDto) {
         log.info("Creating request {}, userId={}", itemRequestDto, userId);
         return itemRequestClient.create(userId, itemRequestDto);
@@ -40,14 +40,14 @@ public class ItemRequestController {
 
     @GetMapping
     public ResponseEntity<Object> getAllByRequestor(
-            @RequestHeader(USER_ID_HEADER) Long userId) {
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Get requests by requestor userId={}", userId);
         return itemRequestClient.getAllByRequestor(userId);
     }
 
     @GetMapping("/all")
     public ResponseEntity<Object> getAll(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("Get all requests userId={}, from={}, size={}", userId, from, size);
@@ -57,7 +57,7 @@ public class ItemRequestController {
     @GetMapping("/{requestId}")
     public ResponseEntity<Object> getById(
             @PathVariable Long requestId,
-            @RequestHeader(USER_ID_HEADER) Long userId) {
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Get request {}, userId={}", requestId, userId);
         return itemRequestClient.getById(requestId, userId);
     }

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import ru.practicum.shareit.item.client.ItemClient;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.util.Constants;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,17 +36,16 @@ import java.util.Map;
 public class ItemController {
     private final ItemClient itemClient;
     private final ObjectMapper objectMapper;
-    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @GetMapping
-    public ResponseEntity<Object> getAll(@RequestHeader(USER_ID_HEADER) Long userId) {
+    public ResponseEntity<Object> getAll(@RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Get items by owner userId={}", userId);
         return itemClient.getAll(userId);
     }
 
     @GetMapping("/{id}")
     @ResponseBody
-    public Map<String, Object> getById(@PathVariable Long id, @RequestHeader(USER_ID_HEADER) Long userId) {
+    public Map<String, Object> getById(@PathVariable Long id, @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Get item {}, userId={}", id, userId);
         ResponseEntity<Object> response = itemClient.getById(id, userId);
 
@@ -69,7 +69,7 @@ public class ItemController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Object> create(@RequestHeader(USER_ID_HEADER) Long userId,
+    public ResponseEntity<Object> create(@RequestHeader(Constants.USER_ID_HEADER) Long userId,
                                          @Valid @RequestBody ItemDto itemDto) {
         log.info("Creating item {}, userId={}", itemDto, userId);
         return itemClient.create(itemDto, userId);
@@ -78,7 +78,7 @@ public class ItemController {
     @PatchMapping("/{id}")
     public ResponseEntity<Object> update(@RequestBody ItemDto itemDto,
                                          @PathVariable Long id,
-                                         @RequestHeader(USER_ID_HEADER) Long userId) {
+                                         @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Updating item {}, userId={}", id, userId);
         return itemClient.update(itemDto, id, userId);
     }
@@ -98,7 +98,7 @@ public class ItemController {
     @PostMapping("/{itemId}/comment")
     public ResponseEntity<Object> createComment(@PathVariable Long itemId,
                                                 @Valid @RequestBody CommentDto commentDto,
-                                                @RequestHeader(USER_ID_HEADER) Long userId) {
+                                                @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Creating comment {}, itemId={}, userId={}", commentDto, itemId, userId);
         return itemClient.createComment(itemId, commentDto, userId);
     }

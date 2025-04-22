@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import ru.practicum.shareit.booking.client.BookingClient;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingState;
+import ru.practicum.shareit.util.Constants;
 
 @Controller
 @RequestMapping(path = "/bookings")
@@ -29,19 +30,18 @@ import ru.practicum.shareit.booking.dto.BookingState;
 @Validated
 public class BookingController {
     private final BookingClient bookingClient;
-    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)  // Важно: тесты ожидают статус 201 CREATED
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Object> createBooking(@Valid @RequestBody BookingDto bookingDto,
-                                                @RequestHeader(USER_ID_HEADER) Long userId) {
+                                                @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Creating booking {}, userId={}", bookingDto, userId);
         return bookingClient.createBooking(bookingDto, userId);
     }
 
     @PatchMapping("/{bookingId}")
     public ResponseEntity<Object> approve(@PathVariable Long bookingId,
-                                          @RequestHeader(USER_ID_HEADER) Long userId,
+                                          @RequestHeader(Constants.USER_ID_HEADER) Long userId,
                                           @RequestParam Boolean approved) {
         log.info("Patch booking {}, userId={}, approved={}", bookingId, userId, approved);
         return bookingClient.approve(bookingId, userId, approved);
@@ -49,14 +49,14 @@ public class BookingController {
 
     @GetMapping("/{bookingId}")
     public ResponseEntity<Object> getById(@PathVariable Long bookingId,
-                                          @RequestHeader(USER_ID_HEADER) Long userId) {
+                                          @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         log.info("Get booking {}, userId={}", bookingId, userId);
         return bookingClient.getById(bookingId, userId);
     }
 
     @GetMapping
     public ResponseEntity<Object> getAllByBooker(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId,
             @RequestParam(name = "state", defaultValue = "all") String stateParam,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(defaultValue = "10") @Positive int size) {
@@ -68,7 +68,7 @@ public class BookingController {
 
     @GetMapping("/owner")
     public ResponseEntity<Object> getAllByOwner(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestHeader(Constants.USER_ID_HEADER) Long userId,
             @RequestParam(name = "state", defaultValue = "all") String stateParam,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(defaultValue = "10") @Positive int size) {

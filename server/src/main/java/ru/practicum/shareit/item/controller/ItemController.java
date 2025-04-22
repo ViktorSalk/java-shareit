@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.util.Constants;
 
 import java.util.List;
 
@@ -22,26 +23,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemController {
     private final ItemService itemService;
-    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @GetMapping
-    public List<ItemDto> getAll(@RequestHeader(USER_ID_HEADER) Long userId) {
+    public List<ItemDto> getAll(@RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         return itemService.getAll(userId);
     }
 
     @GetMapping("/{id}")
-    public ItemDto getById(@PathVariable Long id, @RequestHeader(USER_ID_HEADER) Long userId) {
+    public ItemDto getById(@PathVariable Long id, @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         return itemService.getById(id, userId);
     }
 
     @PostMapping
-    public ItemDto create(@RequestHeader(USER_ID_HEADER) Long userId, @RequestBody ItemDto itemDto) {
+    public ItemDto create(@RequestHeader(Constants.USER_ID_HEADER) Long userId, @RequestBody ItemDto itemDto) {
         return itemService.create(itemDto, userId);
     }
 
     @PatchMapping("/{id}")
     public ItemDto update(@RequestBody ItemDto itemDto, @PathVariable Long id,
-                          @RequestHeader(USER_ID_HEADER) Long userId) {
+                          @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         return itemService.update(itemDto, id, userId);
     }
 
@@ -58,7 +58,7 @@ public class ItemController {
     @PostMapping("/{itemId}/comment")
     public CommentDto createComment(@PathVariable Long itemId,
                                     @RequestBody CommentDto commentDto,
-                                    @RequestHeader(USER_ID_HEADER) Long userId) {
+                                    @RequestHeader(Constants.USER_ID_HEADER) Long userId) {
         return itemService.createComment(itemId, commentDto, userId);
     }
 }
