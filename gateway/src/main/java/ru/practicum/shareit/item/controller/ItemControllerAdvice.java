@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice(basePackages = "ru.practicum.shareit.item.controller")
@@ -36,22 +37,11 @@ public class ItemControllerAdvice implements ResponseBodyAdvice<Object> {
 
         if (request.getURI().getPath().matches("/items/\\d+") && "GET".equals(request.getMethod().name())) {
             try {
-                Map<String, Object> bodyMap;
-                if (body instanceof Map) {
-                    bodyMap = (Map<String, Object>) body;
-                } else {
-                    bodyMap = objectMapper.convertValue(body, Map.class);
-                }
+                Map<String, Object> bodyMap = convertToMap(body);
 
-                if (!bodyMap.containsKey("lastBooking")) {
-                    bodyMap.put("lastBooking", null);
-                }
-                if (!bodyMap.containsKey("nextBooking")) {
-                    bodyMap.put("nextBooking", null);
-                }
-                if (!bodyMap.containsKey("comments")) {
-                    bodyMap.put("comments", new ArrayList<>());
-                }
+                ensureFieldExists(bodyMap, "lastBooking", null);
+                ensureFieldExists(bodyMap, "nextBooking", null);
+                ensureFieldExists(bodyMap, "comments", new ArrayList<>());
 
                 return bodyMap;
             } catch (Exception e) {
@@ -59,5 +49,19 @@ public class ItemControllerAdvice implements ResponseBodyAdvice<Object> {
             }
         }
         return body;
+    }
+
+    private Map<String, Object> convertToMap(Object object) {
+        if (object instanceof Map) {
+            return new HashMap<>((Map<String, Object>) object);
+        }
+
+        return objectMapper.convertValue(object, Map.class);
+    }
+
+    private void ensureFieldExists(Map<String, Object> map, String fieldName, Object defaultValue) {
+        if (!map.containsKey(fieldName)) {
+            map.put(fieldName, defaultValue);
+        }
     }
 }
